@@ -9,3 +9,4 @@ router.put('/:id', authenticateToken, controller.update);
 router.delete('/:id', authenticateToken, controller.remove);
 
 module.exports = router;
+

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Absensi Karyawan</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <h2 class="mb-4">Form Absensi</h2>
+    <form id="formAbsensi" class="row g-3">
+      <div class="col-md-4">
+        <label for="karyawan_id" class="form-label">Karyawan</label>
+        <select id="karyawan_id" class="form-select" required>
+          <option value="">-- Pilih Karyawan --</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="tanggal" class="form-label">Tanggal</label>
+        <input type="date" id="tanggal" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <label for="status" class="form-label">Status</label>
+        <select id="status" class="form-select" required>
+          <option value="">-- Pilih Status --</option>
+          <option value="hadir">Hadir</option>
+          <option value="tidak hadir">Tidak Hadir</option>
+        </select>
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-primary">Simpan Absensi</button>
+      </div>
+    </form>
+
+    <hr class="my-4">
+
+    <h3>Daftar Absensi</h3>
+    <table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>ID Karyawan</th>
+          <th>Tanggal</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="daftarAbsensi"></tbody>
+    </table>
+  </div>
+
+  <script>
+    if (!localStorage.getItem('token')) {
+      window.location.href = 'index.html';
+    }
+
+    async function loadKaryawan() {
+      const res = await fetch('/karyawan', {
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+      });
+      const data = await res.json();
+      const select = document.getElementById('karyawan_id');
+      data.forEach(karyawan => {
+        const opt = document.createElement('option');
+        opt.value = karyawan.id;
+        opt.textContent = `${karyawan.nama} (${karyawan.jabatan})`;
+        select.appendChild(opt);
+      });
+    }
+
+    async function loadAbsensi() {
+      const res = await fetch('/absensi', {
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+      });
+      const data = await res.json();
+      const tbody = document.getElementById('daftarAbsensi');
+      tbody.innerHTML = '';
+      data.forEach(a => {
+        tbody.innerHTML += `<tr>
+          <td>${a.id}</td>
+          <td>${a.karyawan_id}</td>
+          <td>${a.tanggal}</td>
+          <td>${a.status}</td>
+          <td>
+            <button class="btn btn-warning btn-sm" onclick='editAbsensi(${JSON.stringify(a)})'>Edit</button>
+            <button class="btn btn-danger btn-sm" onclick='hapusAbsensi(${a.id})'>Hapus</button>
+          </td>
+        </tr>`;
+      });
+    }
+
+    document.getElementById('formAbsensi').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const karyawan_id = document.getElementById('karyawan_id').value;
+      const tanggal = document.getElementById('tanggal').value;
+      const status = document.getElementById('status').value;
+
+      const res = await fetch('/absensi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        },
+        body: JSON.stringify({ karyawan_id, tanggal, status })
+      });
+
+      const result = await res.json();
+      alert(result.message || 'Absensi berhasil ditambahkan');
+      loadAbsensi();
+    });
+
+    async function hapusAbsensi(id) {
+      if (!confirm('Yakin ingin menghapus data ini?')) return;
+
+      const res = await fetch('/absensi/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+      });
+
+      const result = await res.json();
+      alert(result.message || 'Data berhasil dihapus');
+      loadAbsensi();
+    }
+
+    function editAbsensi(data) {
+      document.getElementById('karyawan_id').value = data.karyawan_id;
+      document.getElementById('tanggal').value = data.tanggal;
+      document.getElementById('status').value = data.status;
+      alert('Fitur edit belum lengkap. Kamu bisa lanjutkan coding-nya nanti.');
+    }
+
+    window.onload = () => {
+      loadKaryawan();
+      loadAbsensi();
+    };
+  </script>
+</body>
+</html>
+

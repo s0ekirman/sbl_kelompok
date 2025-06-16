@@ -1,4 +1,3 @@
-// === middleware/auth.js ===
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
@@ -15,7 +14,7 @@ exports.login = (req, res) => {
         }
 
         const user = results[0];
-        const token = jwt.sign({ username: user.username, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
+        const token = jwt.sign({ username: user.username }, SECRET_KEY, { expiresIn: '1h' });
         res.json({ token });
     });
 };
@@ -32,12 +31,11 @@ exports.authenticateToken = (req, res, next) => {
         next();
     });
 };
-
 exports.register = (req, res) => {
-    const { username, password, role } = req.body;
+    const { username, password } = req.body;
 
-    if (!username || !password || !role) {
-        return res.status(400).json({ message: 'Username, password, dan role wajib diisi' });
+    if (!username || !password) {
+        return res.status(400).json({ message: 'Username dan password wajib diisi' });
     }
 
     const checkQuery = 'SELECT * FROM akun WHERE username = ?';
@@ -48,11 +46,29 @@ exports.register = (req, res) => {
             return res.status(409).json({ message: 'Username sudah digunakan' });
         }
 
-        const insertQuery = 'INSERT INTO akun (username, password, role) VALUES (?, ?, ?)';
-        db.query(insertQuery, [username, password, role], (err, result) => {
-            if (err) return res.status(500).json({ message: 'Gagal menambahkan akun' });
+        const insertQuery = 'INSERT INTO akun (username, password) VALUES (?, ?)';
+        db.query(insertQuery, [username, password], (err, result) => {
+            if (err) return res.status(500).json({ message: 'Gagal mendaftarkan akun' });
 
-            res.json({ message: 'Akun berhasil dibuat', id: result.insertId });
+            res.json({ message: 'Akun berhasil didaftarkan', id: result.insertId });
         });
     });
 };
+exports.login = (req, res) => {
+  const { username, password } = req.body;
+  const sql = 'SELECT * FROM akun WHERE username = ? AND password = ?';
+  db.query(sql, [username, password], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Server error' });
+    if (results.length === 0) {
+      return res.status(401).json({ message: 'Username atau password salah' });
+    }
+
+    const user = results[0];
+    const token = jwt.sign({ username: user.username }, SECRET_KEY, { expiresIn: '1h' });
+    res.json({ token }); // Harus return { token } agar front-end bisa terima
+  });
+};
+
+
+
+
